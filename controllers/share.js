@@ -1,5 +1,6 @@
 const Topic = require('../models/topic');
 const Subscriptions = require("../models/subscription");
+const User = require("../models/user");
 
 exports.createTopic = async (req, res) => {
     try {
@@ -26,8 +27,23 @@ exports.createTopic = async (req, res) => {
     }
 };
 
+exports.deleteTopic = async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name) {
+            return res.status(400).json({ msg: 'Name of the topic not found' });
+        }
+        await Topic.deleteOne({ name });
+        await Subscriptions.deleteOne({ name });
+        res.status(200).json({ msg: `Topic ${name} deleted successfully` });
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
+    }
+};
+
 exports.subscribeTopic = async (req, res) => {
     try {
+        console.log(req.body);
         const { topic, user, seriousness, dateCreated } = req.body;
         if (!topic || !user || !seriousness || !dateCreated) {
             return res.status(400).json({ msg: 'Please enter all the data' });
@@ -51,31 +67,65 @@ exports.subscribeTopic = async (req, res) => {
     }
 };
 
+exports.unSubscribeTopic = async (req, res) => {
+    try {
+        const { topic } = req.body;
+        if (!topic) {
+            return res.status(400).json({ msg: 'Please enter the topic' });
+        }
+        const topicToDel = await Subscriptions.findOne({topic});
+        if(!topicToDel) {
+            return res.status(400).json({msg: 'Topic not found.'});
+        }
+        await Subscriptions.deleteOne({topic})
+        .then(() => {
+            res.status(200).json({msg: `${topic} unsubscribed successfully`});
+        })
+        .catch((e) => {
+            console.log(e);
+        })
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
+    }
+};
+
 exports.getTopics = async (req, res) => {
     try {
-        const topics = await Topic.find({"visibility": "Public"});
-        if(!topics) {
-            return res.status(400).json({msg: 'No topics found'});
+        const topics = await Topic.find({ "visibility": "Public" });
+        if (!topics) {
+            return res.status(400).json({ msg: 'No topics found' });
         }
         res.status(200).json(topics);
-    } catch(e) {
-        return res.status(500).json({msg: e.message});
-    } 
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
+    }
 };
 
 exports.getSubscribedTopics = async (req, res) => {
     try {
-        const {user} = req.body;
-        if(!user) {
-            return res.status(400).json({msg: 'Username not found'});
+        const { user } = req.headers;
+        if (!user) {
+            return res.status(400).json({ msg: "Username not found" });
         }
-        const subsciptions = await Subscriptions.find({user});
-        if(!subsciptions) {
-            return res.status(400).json({msg: 'No data found'});
+
+        const subscriptions = await Subscriptions.find({ user });
+        if (!subscriptions.length) {
+            return res.status(400).json({ msg: "No data found" });
         }
-        res.status(200).json(subsciptions);
+
+        // Fetch topics for each subscription
+        const data = await Promise.all(
+            subscriptions.map(async (subscription) => {
+                console.log(subscription);
+                const topicData = await Topic.findOne({ name: subscription.topic });
+                console.log(topicData);
+                return { ...subscription.toObject(), topicData };
+            })
+        );
+
+        res.status(200).json(data);
     } catch (e) {
-        return res.status(500).json({msg: e.message});
+        return res.status(500).json({ msg: e.message });
     }
 };
 
@@ -90,6 +140,20 @@ exports.shareLink = async (req, res) => {
 exports.shareDocument = async (req, res) => {
     try {
 
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
+    }
+};
+
+exports.getUser = async (req, res) => {
+    try {
+        const { email } = req.headers;
+        console.log(req.headers);
+        if (!email) {
+            return res.status(400).json({ msg: 'Email not found' });
+        }
+        const user = await User.findOne({ email });
+        res.status(201).json(user);
     } catch (e) {
         return res.status(500).json({ msg: e.message });
     }
