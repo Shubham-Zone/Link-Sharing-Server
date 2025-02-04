@@ -7,7 +7,7 @@ const nodemailer = require("nodemailer");
 exports.register = async (req, res) => {
     try {
         const { firstName, lastName, email, userName, password } = req.body;
-        const profilePhoto = req.file ? req.file.buffer.toString("base64") : null;
+        const profilePhoto = req.file ? req.file.buffer.toString("base64") : null; 
 
         if (!firstName || !lastName || !email || !userName || !password) {
             return res.status(400).json({ msg: "All fields are required." });
@@ -19,20 +19,20 @@ exports.register = async (req, res) => {
         }
 
         const uniqueUserName = await User.findOne({ userName });
-
         if (uniqueUserName) {
-            return res.status(409).json({ msg: "User name already exist." });
+            return res.status(409).json({ msg: "Username already exists." });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Create new user object
         const newUser = new User({
             firstName,
             lastName,
             email,
             userName,
             password: hashedPassword,
-            profilePhoto
+            profilePhoto, 
         });
 
         await newUser.save();

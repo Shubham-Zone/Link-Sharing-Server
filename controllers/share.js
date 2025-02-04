@@ -1,6 +1,8 @@
 const Topic = require('../models/topic');
 const Subscriptions = require("../models/subscription");
 const User = require("../models/user");
+const Post = require("../models/post");
+const mongoose = require("mongoose");
 
 exports.createTopic = async (req, res) => {
     try {
@@ -27,33 +29,49 @@ exports.createTopic = async (req, res) => {
     }
 };
 
-exports.deleteTopic = async (req, res) => {
+exports.createPost = async (req, res) => {
     try {
-        const { name } = req.body;
-        if (!name) {
-            return res.status(400).json({ msg: 'Name of the topic not found' });
+        const {topicId, content, createrName, createrUsername, topicName} = req.body;
+        if(!topicId || !content || !createrName || !createrUsername || !topicName) {
+            return res.status(400).json({msg: 'All fields are required'});
         }
-        await Topic.deleteOne({ name });
-        await Subscriptions.deleteOne({ name });
-        res.status(200).json({ msg: `Topic ${name} deleted successfully` });
-    } catch (e) {
-        return res.status(500).json({ msg: e.message });
+        const newPost = new Post({topicId, content, createrName, createrUsername, topicName});
+        newPost.save();
+        res.status(200).json({msg: 'Post created successfully', post: newPost});
+    } catch(e) {
+        return res.status(500).json({msg: e.message});
+    }
+};
+
+exports.getPosts = async (req, res) => {
+    try {
+        const {topicId} = req.params;
+        if(!topicId) {
+            return res.status(400).json({msg: 'Topic id is required'});
+        }
+        const posts = await Post.find({topicId});
+        if(posts.length === 0) {
+            return res.status(402).json({msg: 'No posts found'});
+        }
+        res.status(200).json(posts);
+    } catch(e) {
+        return res.status(500).json({msg: e.message});
     }
 };
 
 exports.subscribeTopic = async (req, res) => {
     try {
         console.log(req.body);
-        const { topic, user, seriousness, dateCreated } = req.body;
-        if (!topic || !user || !seriousness || !dateCreated) {
+        const { topic_id, topic, user, seriousness, dateCreated } = req.body;
+        if (!topic_id || !topic || !user || !seriousness || !dateCreated) {
             return res.status(400).json({ msg: 'Please enter all the data' });
         }
-        const alreadySubscribed = await Subscriptions.findOne({ topic, user });
+        const alreadySubscribed = await Subscriptions.findOne({ topic_id, user });
         if (alreadySubscribed) {
             return res.status(500).json({ msg: 'Already subscribed' });
         }
         const subsciption = new Subscriptions({
-            topic, user, seriousness, dateCreated
+            topic_id, topic, user, seriousness, dateCreated
         });
         await subsciption.save()
             .then(() => {
@@ -69,21 +87,84 @@ exports.subscribeTopic = async (req, res) => {
 
 exports.unSubscribeTopic = async (req, res) => {
     try {
-        const { topic } = req.body;
-        if (!topic) {
-            return res.status(400).json({ msg: 'Please enter the topic' });
+        const { topic_id } = req.body;
+        console.log('Request to unsubscribe ', req.body);
+        if (!topic_id) {
+            return res.status(400).json({ msg: 'Please enter the topic_id' });
         }
-        const topicToDel = await Subscriptions.findOne({topic});
-        if(!topicToDel) {
-            return res.status(400).json({msg: 'Topic not found.'});
+        const topicToDel = await Subscriptions.findOne({ topic_id: topic_id });
+        if (!topicToDel) {
+            return res.status(400).json({ msg: 'Topic not found.' });
         }
-        await Subscriptions.deleteOne({topic})
-        .then(() => {
-            res.status(200).json({msg: `${topic} unsubscribed successfully`});
-        })
-        .catch((e) => {
-            console.log(e);
-        })
+        await Subscriptions.deleteOne({ topic_id: topic_id })
+            .then(() => {
+                res.status(200).json({ msg: `${topic_id} unsubscribed successfully` });
+            })
+            .catch((e) => {
+                console.log(e);
+            })
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
+    }
+};
+
+exports.deleteTopic = async (req, res) => {
+    try {
+        const { topic_id } = req.body;
+
+        if (!topic_id) {
+            return res.status(400).json({ msg: 'Topic ID not provided' });
+        }
+
+        // Convert the topic_id to ObjectId
+        const objectId = new mongoose.Types.ObjectId(topic_id);
+        console.log(objectId);
+        // Delete the topic by its _id
+        const deletedTopic = await Topic.findByIdAndDelete(objectId);
+        if (!deletedTopic) {
+            return res.status(404).json({ msg: 'Topic not found' });
+        }
+
+        // Delete all related subscriptions using topic_id
+        await Subscriptions.deleteMany({ topic_id: objectId });
+
+        return res.status(200).json({ msg: 'Topic and related subscriptions deleted successfully' });
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
+    }
+};
+
+exports.updateTopic = async (req, res) => {
+    try {
+        const { topicId, newName } = req.body; 
+        
+        if (!topicId || !newName) {
+            return res.status(400).json({ msg: "Topic ID and new name are required" });
+        }
+
+        // Step 1: Update the topic name in the topics collection
+        const updatedTopic = await Topic.findByIdAndUpdate(
+            topicId, 
+            { name: newName }, 
+            { new: true } 
+        );
+
+        if (!updatedTopic) {
+            return res.status(404).json({ msg: "Topic not found" });
+        }
+
+        // Step 2: Update the topic name in the subscriptions collection
+        await Subscriptions.updateMany(
+            { topic_id: topicId }, 
+            { $set: { topic: newName } } 
+        );
+
+        // Step 3: Return the updated topic and success message
+        return res.status(200).json({ 
+            msg: "Topic and related subscriptions updated successfully",
+            updatedTopic 
+        });
+
     } catch (e) {
         return res.status(500).json({ msg: e.message });
     }
@@ -124,6 +205,22 @@ exports.getSubscribedTopics = async (req, res) => {
         );
 
         res.status(200).json(data);
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
+    }
+};
+
+exports.getSubscriptionsCount = async (req, res) => {
+    try {
+        const {topic_id} = req.params;
+        console.log('Topic id ', topic_id);
+        console.log('Req params are', req.params);
+        if (!topic_id) {
+            return res.status(400).json({ msg: 'Topic id not found.' });
+        }
+        const count = await Subscriptions.countDocuments({ topic_id: topic_id });
+        console.log('Count: ', count);
+        res.status(200).json({ cnt: count });
     } catch (e) {
         return res.status(500).json({ msg: e.message });
     }
