@@ -7,7 +7,7 @@ const nodemailer = require("nodemailer");
 exports.register = async (req, res) => {
     try {
         const { firstName, lastName, email, userName, password } = req.body;
-        const profilePhoto = req.file ? req.file.buffer.toString("base64") : null; 
+        const profilePhoto = req.file ? req.file.buffer.toString("base64") : null;
 
         if (!firstName || !lastName || !email || !userName || !password) {
             return res.status(400).json({ msg: "All fields are required." });
@@ -32,7 +32,7 @@ exports.register = async (req, res) => {
             email,
             userName,
             password: hashedPassword,
-            profilePhoto, 
+            profilePhoto,
         });
 
         await newUser.save();
@@ -67,7 +67,7 @@ exports.login = async (req, res) => {
     }
 };
 
-exports.requestPasswordReset = async (req, res, next) => {
+exports.requestPasswordReset = async (req, res) => {
     const { email } = req.body;
     try {
         const user = await User.findOne({ email });
@@ -81,7 +81,7 @@ exports.requestPasswordReset = async (req, res, next) => {
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'shubhamanuj652@gmail.com',
+                user: process.env.EMAIL,
                 pass: 'ufyl ocze qipz yaji',
             },
         });
