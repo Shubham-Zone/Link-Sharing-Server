@@ -3,13 +3,15 @@ const router = express.Router();
 const { createTopic, shareLink, shareDocument,
     subscribeTopic, unSubscribeTopic, getTopics,
     getSubscribedTopics, getUser, getSubscriptionsCount,
-    deleteTopic, updateTopic, createPost, getPosts } = require("../controllers/share");
+    deleteTopic, updateTopic, createPost, getPosts, getPublicPosts } = require("../controllers/share");
 
 router.post('/create-topic', createTopic);
 
 router.post('/create-post', createPost);
 
 router.get('/posts/:topicId', getPosts);
+
+router.get('/public-posts', getPublicPosts);
 
 router.post('/subscribe', subscribeTopic);
 

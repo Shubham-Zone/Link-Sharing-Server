@@ -6,10 +6,10 @@ const nodemailer = require("nodemailer");
 
 exports.register = async (req, res) => {
     try {
-        const { firstName, lastName, email, userName, password } = req.body;
+        const { firstName, lastName, email, userName, password, uuid } = req.body;
         const profilePhoto = req.file ? req.file.buffer.toString("base64") : null;
 
-        if (!firstName || !lastName || !email || !userName || !password) {
+        if (!firstName || !lastName || !email || !userName || !password || !uuid) {
             return res.status(400).json({ msg: "All fields are required." });
         }
 
@@ -33,6 +33,7 @@ exports.register = async (req, res) => {
             userName,
             password: hashedPassword,
             profilePhoto,
+            uuid
         });
 
         await newUser.save();

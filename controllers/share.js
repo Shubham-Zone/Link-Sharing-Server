@@ -31,31 +31,43 @@ exports.createTopic = async (req, res) => {
 
 exports.createPost = async (req, res) => {
     try {
-        const {topicId, content, createrName, createrUsername, topicName} = req.body;
-        if(!topicId || !content || !createrName || !createrUsername || !topicName) {
-            return res.status(400).json({msg: 'All fields are required'});
+        const { topicId, content, createrName, createrUsername, topicName } = req.body;
+        if (!topicId || !content || !createrName || !createrUsername || !topicName) {
+            return res.status(400).json({ msg: 'All fields are required' });
         }
-        const newPost = new Post({topicId, content, createrName, createrUsername, topicName});
+        const newPost = new Post({ topicId, content, createrName, createrUsername, topicName });
         newPost.save();
-        res.status(200).json({msg: 'Post created successfully', post: newPost});
-    } catch(e) {
-        return res.status(500).json({msg: e.message});
+        res.status(200).json({ msg: 'Post created successfully', post: newPost });
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
     }
 };
 
 exports.getPosts = async (req, res) => {
     try {
-        const {topicId} = req.params;
-        if(!topicId) {
-            return res.status(400).json({msg: 'Topic id is required'});
+        const { topicId } = req.params;
+        if (!topicId) {
+            return res.status(400).json({ msg: 'Topic id is required' });
         }
-        const posts = await Post.find({topicId});
-        if(posts.length === 0) {
-            return res.status(402).json({msg: 'No posts found'});
+        const posts = await Post.find({ topicId });
+        if (posts.length === 0) {
+            return res.status(402).json({ msg: 'No posts found' });
         }
         res.status(200).json(posts);
-    } catch(e) {
-        return res.status(500).json({msg: e.message});
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
+    }
+};
+
+exports.getPublicPosts = async (req, res) => {
+    try {
+        const posts = await Post.find();
+        if (posts.length === 0) {
+            return res.status(402).json({ msg: 'No posts found' });
+        }
+        res.status(200).json(posts);
+    } catch (e) {
+        return res.status(500).json({ msg: e.message });
     }
 };
 
@@ -136,17 +148,17 @@ exports.deleteTopic = async (req, res) => {
 
 exports.updateTopic = async (req, res) => {
     try {
-        const { topicId, newName } = req.body; 
-        
+        const { topicId, newName } = req.body;
+
         if (!topicId || !newName) {
             return res.status(400).json({ msg: "Topic ID and new name are required" });
         }
 
         // Step 1: Update the topic name in the topics collection
         const updatedTopic = await Topic.findByIdAndUpdate(
-            topicId, 
-            { name: newName }, 
-            { new: true } 
+            topicId,
+            { name: newName },
+            { new: true }
         );
 
         if (!updatedTopic) {
@@ -155,14 +167,14 @@ exports.updateTopic = async (req, res) => {
 
         // Step 2: Update the topic name in the subscriptions collection
         await Subscriptions.updateMany(
-            { topic_id: topicId }, 
-            { $set: { topic: newName } } 
+            { topic_id: topicId },
+            { $set: { topic: newName } }
         );
 
         // Step 3: Return the updated topic and success message
-        return res.status(200).json({ 
+        return res.status(200).json({
             msg: "Topic and related subscriptions updated successfully",
-            updatedTopic 
+            updatedTopic
         });
 
     } catch (e) {
@@ -212,7 +224,7 @@ exports.getSubscribedTopics = async (req, res) => {
 
 exports.getSubscriptionsCount = async (req, res) => {
     try {
-        const {topic_id} = req.params;
+        const { topic_id } = req.params;
         console.log('Topic id ', topic_id);
         console.log('Req params are', req.params);
         if (!topic_id) {
