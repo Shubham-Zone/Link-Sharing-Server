@@ -1,38 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { createTopic, shareLink, shareDocument,
-    subscribeTopic, unSubscribeTopic, getTopics,
-    getSubscribedTopics, getUser, getSubscriptionsCount,
-    deleteTopic, updateTopic, createPost, getPosts, getPublicPosts } = require("../controllers/share");
-
-router.post('/create-topic', createTopic);
-
-router.post('/create-post', createPost);
-
-router.get('/posts/:topicId', getPosts);
-
-router.get('/public-posts', getPublicPosts);
-
-router.post('/subscribe', subscribeTopic);
-
-router.delete('/unsubscribe', unSubscribeTopic);
-
-router.delete('/delete-topic', deleteTopic);
-
-router.get('/topics', getTopics);
-
-router.get('/subscribed-topics', getSubscribedTopics);
-
-router.get('/subscription-count/:topic_id', getSubscriptionsCount)
+const { shareLink, shareDocument } = require("../controllers/share");
 
 router.post('/share-document', shareDocument);
 
 router.post('/share-link', shareLink);
 
-router.get('/user', getUser);
-
-router.put('/update-topic', updateTopic);
-
 module.exports = router;
-
-
